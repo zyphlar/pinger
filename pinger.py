@@ -112,6 +112,9 @@ class Pinger:
     # Handle ctrl-c
     signal.signal(signal.SIGINT, self.destroy)
 
+    # Print welcome message
+    print "Starting Pinger..."
+
     # Create systray icon
     self.ind = appindicator.Indicator.new (
                "pinger",
@@ -131,6 +134,9 @@ class Pinger:
     self.counter = 0
     self.timeout = ping_frequency
     self.ping()
+
+    # Print started message
+    print "Started."
 
     # Begin runtime loop
     Gtk.main()
