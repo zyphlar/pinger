@@ -3,12 +3,13 @@ Pinger.py
 A ping tool that sits in your system tray
 ---------
 
-- Currently for Ubuntu only
- - (Requires Python, GTK, and AppIndicator3)
- - **Contributions welcome to expand to other OSes!**
 - Saves your sanity when the wifi sucks
 - Doesn't clutter up your screen with ping windows
 - Lets you know when pings fail instead of silently failing
+- **Currently for Ubuntu only**
+ - (Requires Python, GTK, and AppIndicator3)
+ - Startup Automatically option creates a `~/.config/autostart/pinger.desktop` file
+ - **Contributions welcome to expand to other OSes!**
 
 **Usage (in Ubuntu):**
 
@@ -16,14 +17,8 @@ Open the Terminal program and enter the following commands:
 
     cd ~
     git clone https://github.com/zyphlar/pinger.git
+    python pinger/pinger.py &
 
-Open the Startup Applications program and click Add.
-
-    Name: Pinger
-    Command: python ~/pinger/pinger.py
-
-Click Save, and Close. 
-
-Pinger should now start automatically in your system tray when you login next. (It just says "xx.x ms"). You can test it manually by typing `python ~/pinger/pinger.py` in your terminal and pressing Enter.
+Pinger should open in your system tray (It just looks like "XX.X ms"). To set Pinger to start automatically (in Ubuntu) click it and choose Start Automatically.
 
 Report bugs or feature requests at https://github.com/zyphlar/pinger/issues

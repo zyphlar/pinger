@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 # Pinger.py -- A ping tool that sits in your system tray
 # Copyright 2013 Will Bradley
@@ -43,6 +44,14 @@ import subprocess
 import re
 # Ctrl-c
 import signal
+# File paths
+import os
+
+# Vars
+startup_active_label = "✓ Start Automatically"
+startup_inactive_label = "Start Automatically"
+home_path = os.path.expanduser("~")
+startup_path = home_path+'/.config/autostart/pinger.desktop'
 
 #
 # Main Class
@@ -71,10 +80,33 @@ class Pinger:
     self.menu.append(menu_item)
     menu_item.connect("activate", callback, text)
     menu_item.show()
+    return menu_item
 
   def destroy(self, widget, data=None):
-    print "destroy signal occurred"
+    print "Quitting..."
     Gtk.main_quit()
+
+  def create_autostart(self, widget, data=None):
+    with open(startup_path,'w') as f:
+      f.write("[Desktop Entry]\r\n"
+              "Type=Application\r\n"
+              "Exec=python "+os.path.abspath( __file__ )+"\r\n"
+              "X-GNOME-Autostart-enabled=true\r\n"
+              "Name=Pinger\r\n"
+              "Comment=Pings the internet every few seconds")
+    self.update_startup_menu()
+
+  def remove_autostart(self, widget, data=None):
+    os.remove(startup_path)
+    self.update_startup_menu()
+ 
+  def update_startup_menu(self):
+    if os.path.exists(startup_path):
+      self.startup_menu.set_label(startup_active_label)
+      self.startup_menu.connect("activate", self.remove_autostart, startup_active_label)
+    else:
+      self.startup_menu.set_label(startup_inactive_label)
+      self.startup_menu.connect("activate", self.create_autostart, startup_inactive_label)
 
   def __init__(self):
     # Handle ctrl-c
@@ -90,6 +122,8 @@ class Pinger:
 
     # create a menu
     self.menu = Gtk.Menu()
+    self.startup_menu = self.create_menu_item(startup_inactive_label, self.create_autostart)
+    self.update_startup_menu()
     self.create_menu_item("Exit", self.destroy)
     self.ind.set_menu(self.menu)
 
