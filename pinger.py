@@ -35,7 +35,7 @@ import subprocess
 import re
 
 # Vars
-host = "www.google.com"
+host = "4.2.2.2"
 
 class HelloWorld:
 
