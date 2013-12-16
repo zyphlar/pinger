@@ -58,7 +58,7 @@ class Pinger:
     )
     out, error = ping.communicate()
     if error:
-      label = "!! FAIL !!"
+      label = "PING FAIL"
     else:
       m = re.search('time=(.*) ms', out)
       label = m.group(1)+" ms"
@@ -86,7 +86,7 @@ class Pinger:
                "", # no icon
                appindicator.IndicatorCategory.COMMUNICATIONS)
     self.ind.set_status (appindicator.IndicatorStatus.ACTIVE)
-    self.ind.set_label ("0.0 ms", "100.0 ms")
+    self.ind.set_label ("Pinger Loading...", "Pinger Loading...")
 
     # create a menu
     self.menu = Gtk.Menu()
