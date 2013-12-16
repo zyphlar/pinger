@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Pinger.py -- A ping tool that sits in your system tray
 # Copyright 2013 Will Bradley
@@ -48,8 +47,7 @@ import signal
 import os
 
 # Vars
-startup_active_label = "✓ Start Automatically"
-startup_inactive_label = "Start Automatically"
+startup_label = "Start Automatically"
 home_path = os.path.expanduser("~")
 startup_path = home_path+'/.config/autostart/pinger.desktop'
 
@@ -66,17 +64,21 @@ class Pinger:
         stderr = subprocess.PIPE
     )
     out, error = ping.communicate()
-    if error:
+    m = re.search('time=(.*) ms', out)
+    if error or m == None:
       label = "PING FAIL"
     else:
-      m = re.search('time=(.*) ms', out)
       label = m.group(1)+" ms"
     self.ind.set_label (label, "100.0 ms")
     #self.ping_menu_item.set_label(out)
     gobject.timeout_add_seconds(self.timeout, self.ping)
 
-  def create_menu_item(self, text, callback):
-    menu_item = Gtk.MenuItem(text)
+  def create_menu_item(self, menu_type, text, callback):
+    if menu_type == "check":
+      menu_item = Gtk.CheckMenuItem(text)
+      menu_item.set_active(True)
+    else:
+      menu_item = Gtk.MenuItem(text)
     self.menu.append(menu_item)
     menu_item.connect("activate", callback, text)
     menu_item.show()
@@ -102,11 +104,11 @@ class Pinger:
  
   def update_startup_menu(self):
     if os.path.exists(startup_path):
-      self.startup_menu.set_label(startup_active_label)
-      self.startup_menu.connect("activate", self.remove_autostart, startup_active_label)
+      self.startup_menu.connect("activate", self.remove_autostart, startup_label)
+      self.startup_menu.set_active(False)
     else:
-      self.startup_menu.set_label(startup_inactive_label)
-      self.startup_menu.connect("activate", self.create_autostart, startup_inactive_label)
+      self.startup_menu.connect("activate", self.create_autostart, startup_label)
+      self.startup_menu.set_active(True)
 
   def __init__(self):
     # Handle ctrl-c
@@ -125,9 +127,10 @@ class Pinger:
 
     # create a menu
     self.menu = Gtk.Menu()
-    self.startup_menu = self.create_menu_item(startup_inactive_label, self.create_autostart)
-    self.update_startup_menu()
-    self.create_menu_item("Exit", self.destroy)
+
+    self.startup_menu = self.create_menu_item("check",startup_label, self.remove_autostart)
+    #self.update_startup_menu()
+    self.create_menu_item(None, "Exit", self.destroy)
     self.ind.set_menu(self.menu)
 
     # start the ping process
