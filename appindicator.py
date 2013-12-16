@@ -26,7 +26,6 @@
 #
 
 from gi.repository import Gtk
-from gi.repository import AppIndicator3 as appindicator
 
 # Timer
 from gi.repository import GObject as gobject
@@ -52,7 +51,8 @@ class HelloWorld:
     else:
       m = re.search('time=(.*) ms', out)
       label = m.group(1)+" ms"
-    ind.set_label (label, "100.0 ms")
+    #ind.set_label (label, "100.0 ms")
+    status.set_title(label)
     #self.ping_menu_item.set_label(out)
     gobject.timeout_add_seconds(self.timeout, self.ping)
 
@@ -85,13 +85,17 @@ def create_menu_item(menu, text, callback):
   return menu_items
 
 if __name__ == "__main__":
-  ind = appindicator.Indicator.new (
-                        "pinger",
-                        "", #indicator-messages
-                        appindicator.IndicatorCategory.COMMUNICATIONS)
-  ind.set_status (appindicator.IndicatorStatus.ACTIVE)
+  status = Gtk.StatusIcon()
+  status.set_title("0.0 ms")
+  status.set_from_stock(Gtk.STOCK_HOME)
+  status.connect("activate",Gtk.Window.present) 
+  #ind = appindicator.Indicator.new (
+  #                      "pinger",
+  #                      "", #indicator-messages
+  #                      appindicator.IndicatorCategory.COMMUNICATIONS)
+  #ind.set_status (appindicator.IndicatorStatus.ACTIVE)
   #ind.set_attention_icon ("indicator-messages-new")
-  ind.set_label ("0.0 ms", "100.0 ms")
+  #ind.set_label ("0.0 ms", "100.0 ms")
 
   # create a menu
   menu = Gtk.Menu()
@@ -104,7 +108,7 @@ if __name__ == "__main__":
   create_menu_item(menu, "Exit", hello.destroy)
 
   # Add the menu to our statusbar
-  ind.set_menu(menu)
+  #ind.set_menu(menu)
 
   # Runtime loop
   Gtk.main()
