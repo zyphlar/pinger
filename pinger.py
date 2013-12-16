@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 #
-# Copyright 2009-2012 Canonical Ltd.
+# Pinger.py -- A ping tool that sits in your system tray
+# Copyright 2013 Will Bradley
 #
-# Authors: Neil Jagdish Patel <neil.patel@canonical.com>
-#          Jono Bacon <jono@ubuntu.com>
-#          David Planella <david.planella@ubuntu.com>
+# Authors: Will Bradley <bradley.will@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify it 
 # under the terms of either or both of the following licenses:
@@ -63,8 +62,9 @@ class HelloWorld:
   def __init__(self):
     # register a periodic timer
     self.counter = 0
-    self.timeout = 1
+    self.timeout = 10
     gobject.timeout_add_seconds(self.timeout, self.ping)
+    self.ping()
 
 
 def menuitem_response(w, buf):
