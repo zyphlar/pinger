@@ -24,20 +24,31 @@
 # <http://www.gnu.org/licenses/>
 #
 
+# User-editable variables
+host = "4.2.2.2" # IP or hostname
+ping_frequency = 5 # in seconds
+
+#
+# Dependencies
+#
+
+# System Tray Icon
 from gi.repository import Gtk
 from gi.repository import AppIndicator3 as appindicator
-
 # Timer
 from gi.repository import GObject as gobject
 # Pinging
 import subprocess
 # Regex
 import re
+# Ctrl-c
+import signal
 
-# Vars
-host = "4.2.2.2"
+#
+# Main Class
+#
 
-class HelloWorld:
+class Pinger:
 
   def ping(self, widget=None, data=None):
     ping = subprocess.Popen(
@@ -51,60 +62,48 @@ class HelloWorld:
     else:
       m = re.search('time=(.*) ms', out)
       label = m.group(1)+" ms"
-    ind.set_label (label, "100.0 ms")
+    self.ind.set_label (label, "100.0 ms")
     #self.ping_menu_item.set_label(out)
     gobject.timeout_add_seconds(self.timeout, self.ping)
+
+  def create_menu_item(self, text, callback):
+    menu_item = Gtk.MenuItem(text)
+    self.menu.append(menu_item)
+    menu_item.connect("activate", callback, text)
+    menu_item.show()
 
   def destroy(self, widget, data=None):
     print "destroy signal occurred"
     Gtk.main_quit()
 
   def __init__(self):
-    # register a periodic timer
+    # Handle ctrl-c
+    signal.signal(signal.SIGINT, self.destroy)
+
+    # Create systray icon
+    self.ind = appindicator.Indicator.new (
+               "pinger",
+               "", # no icon
+               appindicator.IndicatorCategory.COMMUNICATIONS)
+    self.ind.set_status (appindicator.IndicatorStatus.ACTIVE)
+    self.ind.set_label ("0.0 ms", "100.0 ms")
+
+    # create a menu
+    self.menu = Gtk.Menu()
+    self.create_menu_item("Exit", self.destroy)
+    self.ind.set_menu(self.menu)
+
+    # start the ping process
     self.counter = 0
-    self.timeout = 10
-    gobject.timeout_add_seconds(self.timeout, self.ping)
+    self.timeout = ping_frequency
     self.ping()
 
+    # Begin runtime loop
+    Gtk.main()
 
-def menuitem_response(w, buf):
-  print buf
-
-
-def create_menu_item(menu, text, callback):
-
-  menu_items = Gtk.MenuItem(text)
-
-  menu.append(menu_items)
-
-  menu_items.connect("activate", callback, text)
-
-  # show the items
-  menu_items.show()
-
-  return menu_items
+#
+# Runtime
+#
 
 if __name__ == "__main__":
-  ind = appindicator.Indicator.new (
-                        "pinger",
-                        "", #indicator-messages
-                        appindicator.IndicatorCategory.COMMUNICATIONS)
-  ind.set_status (appindicator.IndicatorStatus.ACTIVE)
-  #ind.set_attention_icon ("indicator-messages-new")
-  ind.set_label ("0.0 ms", "100.0 ms")
-
-  # create a menu
-  menu = Gtk.Menu()
-
-  # and the app
-  hello = HelloWorld()
-
-  # create menu items
-  #hello.ping_menu_item = create_menu_item(menu, "Ping", hello.ping)
-  create_menu_item(menu, "Exit", hello.destroy)
-
-  # Add the menu to our statusbar
-  ind.set_menu(menu)
-
-  # Runtime loop
-  Gtk.main()
+  pinger = Pinger()
