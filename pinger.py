@@ -66,10 +66,10 @@ class Pinger:
         stderr = subprocess.PIPE
     )
     out, error = ping.communicate()
-    if error:
+    m = re.search('time=(.*) ms', out)
+    if error or m == None:
       label = "PING FAIL"
     else:
-      m = re.search('time=(.*) ms', out)
       label = m.group(1)+" ms"
     self.ind.set_label (label, "100.0 ms")
     #self.ping_menu_item.set_label(out)
