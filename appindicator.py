@@ -29,9 +29,11 @@ from gi.repository import Gtk
 from gi.repository import AppIndicator3 as appindicator
 
 # Timer
-import gobject
+from gi.repository import GObject as gobject
 # Pinging
 import subprocess
+# Regex
+import re
 
 # Vars
 host = "www.google.com"
@@ -45,8 +47,13 @@ class HelloWorld:
         stderr = subprocess.PIPE
     )
     out, error = ping.communicate()
-    ind.set_label ("10.0 ms", "100.0 ms")
-    self.ping_menu_item.set_label(out)
+    if error:
+      label = "!! FAIL !!"
+    else:
+      m = re.search('time=(.*) ms', out)
+      label = m.group(1)+" ms"
+    ind.set_label (label, "100.0 ms")
+    #self.ping_menu_item.set_label(out)
     gobject.timeout_add_seconds(self.timeout, self.ping)
 
   def destroy(self, widget, data=None):
@@ -79,11 +86,11 @@ def create_menu_item(menu, text, callback):
 
 if __name__ == "__main__":
   ind = appindicator.Indicator.new (
-                        "example-simple-client",
-                        "indicator-messages",
-                        appindicator.IndicatorCategory.APPLICATION_STATUS)
+                        "pinger",
+                        "", #indicator-messages
+                        appindicator.IndicatorCategory.COMMUNICATIONS)
   ind.set_status (appindicator.IndicatorStatus.ACTIVE)
-  ind.set_attention_icon ("indicator-messages-new")
+  #ind.set_attention_icon ("indicator-messages-new")
   ind.set_label ("0.0 ms", "100.0 ms")
 
   # create a menu
@@ -93,7 +100,7 @@ if __name__ == "__main__":
   hello = HelloWorld()
 
   # create menu items
-  hello.ping_menu_item = create_menu_item(menu, "Ping", hello.ping)
+  #hello.ping_menu_item = create_menu_item(menu, "Ping", hello.ping)
   create_menu_item(menu, "Exit", hello.destroy)
 
   # Add the menu to our statusbar
