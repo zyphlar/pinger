@@ -46,6 +46,7 @@ class HelloWorld:
     )
     out, error = ping.communicate()
     self.label.set_text(out)
+    self.ping_menu_item.set_label(out)
     gobject.timeout_add_seconds(self.timeout, self.ping)
 
   def delete_event(self, widget, event, data=None):
@@ -128,6 +129,20 @@ class HelloWorld:
 def menuitem_response(w, buf):
   print buf
 
+
+def create_menu_item(menu, text, callback):
+
+  menu_items = Gtk.MenuItem(text)
+
+  menu.append(menu_items)
+
+  menu_items.connect("activate", callback, text)
+
+  # show the items
+  menu_items.show()
+
+  return menu_items
+
 if __name__ == "__main__":
   ind = appindicator.Indicator.new (
                         "example-simple-client",
@@ -139,22 +154,15 @@ if __name__ == "__main__":
   # create a menu
   menu = Gtk.Menu()
 
-  # create some 
-  for i in range(3):
-    buf = "Test-undermenu - %d" % i
-
-    menu_items = Gtk.MenuItem(buf)
-
-    menu.append(menu_items)
-
-    # this is where you would connect your menu item up with a function:
-    
-    # menu_items.connect("activate", menuitem_response, buf)
-
-    # show the items
-    menu_items.show()
-
-  ind.set_menu(menu)
+  # and the app
   hello = HelloWorld()
 
+  # create menu items
+  hello.ping_menu_item = create_menu_item(menu, "Ping", hello.ping)
+  create_menu_item(menu, "Exit", hello.destroy)
+
+  # Add the menu to our statusbar
+  ind.set_menu(menu)
+
+  # Runtime loop
   Gtk.main()
