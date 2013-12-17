@@ -28,6 +28,7 @@
 # User-editable variables
 host = "4.2.2.2" # IP or hostname
 ping_frequency = 5 # in seconds
+ping_log_max_size = 15
 
 #
 # Dependencies
@@ -58,6 +59,7 @@ startup_path = home_path+'/.config/autostart/pinger.desktop'
 #
 
 class Pinger:
+  ping_log = []
 
   def ping(self, widget=None, data=None):
     ping = subprocess.Popen(
@@ -69,16 +71,27 @@ class Pinger:
     m = re.search('time=(.*) ms', out)
     if error or m == None:
       label = "PING FAIL"
+      self.log_ping(-1)
     else:
       label = m.group(1)+" ms"
+      self.log_ping(m.group(1))
     self.ind.set_label (label, "100.0 ms")
     #self.ping_menu_item.set_label(out)
     gobject.timeout_add_seconds(self.timeout, self.ping)
 
+  def log_ping(self, value):
+    self.ping_log.append(value)
+    self.update_log_menu()
+    # limit the size of the log
+    if len(self.ping_log) > ping_log_max_size:
+      # remove the earliest ping, not the latest
+      self.ping_log.pop(0) 
+
   def create_menu_item(self, text, callback):
     menu_item = Gtk.MenuItem(text)
     self.menu.append(menu_item)
-    menu_item.connect("activate", callback, text)
+    if callback:
+      menu_item.connect("activate", callback, text)
     menu_item.show()
     return menu_item
 
@@ -108,6 +121,22 @@ class Pinger:
       self.startup_menu.set_label(startup_inactive_label)
       self.startup_menu.connect("activate", self.create_autostart, startup_inactive_label)
 
+  def update_log_menu(self):
+    graph = ""
+    print self.ping_log
+    for p in self.ping_log:
+      if float(p) == -1:
+        graph += "E "#u'\u2847' # Error
+      elif float(p) < 30:
+        graph += u'\u2840'
+      elif float(p) < 100:
+        graph += u'\u2844'
+      elif float(p) < 100:
+        graph += u'\u2846'
+      else:
+        graph += u'\u2847'
+    self.log_menu.set_label(graph)
+    
   def __init__(self):
     # Handle ctrl-c
     signal.signal(signal.SIGINT, self.destroy)
@@ -125,8 +154,12 @@ class Pinger:
 
     # create a menu
     self.menu = Gtk.Menu()
+    # with autostart option
     self.startup_menu = self.create_menu_item(startup_inactive_label, self.create_autostart)
     self.update_startup_menu()
+    # and log display
+    self.log_menu = self.create_menu_item("Ping Log", None)
+    # and exit option
     self.create_menu_item("Exit", self.destroy)
     self.ind.set_menu(self.menu)
 
