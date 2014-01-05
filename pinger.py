@@ -99,6 +99,7 @@ else:
 class Pinger:
   ping_log = []
   paused = False
+  autostart = False
 
   def ping(self, widget=None, data=None):
     if not self.paused:
@@ -139,40 +140,30 @@ class Pinger:
     print "Quitting..."
     Gtk.main_quit()
 
-  def create_autostart(self, widget, data=None):
-    if not os.path.exists(startup_dir):
-      os.makedirs(startup_dir)
-    with open(startup_path,'w') as f:
-      f.write("[Desktop Entry]\r\n"
-              "Type=Application\r\n"
-              "Exec=python "+os.path.abspath( __file__ )+arguments+"\r\n"
-              "X-GNOME-Autostart-enabled=true\r\n"
-              "Name=Pinger\r\n"
-              "Comment=Pings the internet every few seconds")
-    self.update_startup_menu()
-
-  def remove_autostart(self, widget, data=None):
-    os.remove(startup_path)
-    self.update_startup_menu()
-    print "Removed"
+  def toggle_autostart(self, widget, data=None):
+    if not self.autostart:
+      if not os.path.exists(startup_dir):
+        os.makedirs(startup_dir)
+      with open(startup_path,'w') as f:
+        f.write("[Desktop Entry]\r\n"
+                "Type=Application\r\n"
+                "Exec=python "+os.path.abspath( __file__ )+arguments+"\r\n"
+                "X-GNOME-Autostart-enabled=true\r\n"
+                "Name=Pinger\r\n"
+                "Comment=Pings the internet every few seconds")
+      self.autostart = True
+      self.startup_menu.set_label(startup_active_label)
+    else:
+      os.remove(startup_path)
+      self.autostart = False
+      self.startup_menu.set_label(startup_inactive_label)
 
   def toggle_pause(self, widget, data=None):
     if self.paused:
       self.paused = False
-    else:
-      self.paused = True
-    self.update_pause_menu() 
-
-  def update_startup_menu(self):
-    if os.path.exists(startup_path):
-      self.startup_menu.set_label(startup_active_label)
-    else:
-      self.startup_menu.set_label(startup_inactive_label)
-
-  def update_pause_menu(self):
-    if self.paused:
       self.pause_menu.set_label(play_label)
     else:
+      self.paused = True
       self.pause_menu.set_label(pause_label)
 
   def update_log_menu(self):
@@ -210,10 +201,14 @@ class Pinger:
     self.menu = Gtk.Menu()
     # with pause option
     self.pause_menu = self.create_menu_item(pause_label, self.toggle_pause)
-    self.update_pause_menu()
     # with autostart option
-    self.startup_menu = self.create_menu_item(startup_inactive_label, self.create_autostart)
-    self.update_startup_menu()
+    # first, check current autostart state by checking existance of .desktop file
+    try:
+      with open(startup_dir):
+        self.autostart = True
+    except IOError:
+      self.autostart = False
+    self.startup_menu = self.create_menu_item(startup_inactive_label, self.toggle_autostart)
     # and log display
     self.log_menu = self.create_menu_item("Ping Log", None)
     # and exit option
