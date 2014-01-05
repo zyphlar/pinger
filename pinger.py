@@ -52,6 +52,7 @@ startup_active_label = "✓ Start Automatically"
 startup_inactive_label = "Start Automatically"
 home_path = os.path.expanduser("~")
 startup_path = home_path+'/.config/autostart/pinger.desktop'
+startup_dir = home_path+'/.config/autostart/'
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--target", help="Target to PING against. (IP / Hostname / Domain name). Defaults to 4.2.2.2")
@@ -135,6 +136,8 @@ class Pinger:
     Gtk.main_quit()
 
   def create_autostart(self, widget, data=None):
+    if not os.path.exists(startup_dir):
+      os.makedirs(startup_dir)
     with open(startup_path,'w') as f:
       f.write("[Desktop Entry]\r\n"
               "Type=Application\r\n"
