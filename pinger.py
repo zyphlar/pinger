@@ -60,7 +60,7 @@ parser.add_argument("-m", "--maxlog", help="Maximum amount of pings to log. Defa
 args = parser.parse_args()
 
 #accumulate the arguments for use later
-arguments = ""
+arguments = " "
 for arg in sys.argv[1:]:
   arguments += arg + " "
 
