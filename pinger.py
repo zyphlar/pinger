@@ -114,10 +114,10 @@ class Pinger:
         label = "PING FAIL"
         self.log_ping(-1)
       else:
-        label = m.group(1)+" ms"
-        self.log_ping(m.group(1))
-      self.ind.set_label (label, "100.0 ms")
-    #self.ping_menu_item.set_label(out)
+        latency = "%.2f" % float(m.group(1))
+        label = latency+" ms"
+        self.log_ping(latency)
+      self.ind.set_label(label, "100.0 ms")
     gobject.timeout_add_seconds(self.timeout, self.ping)
 
   def log_ping(self, value):
