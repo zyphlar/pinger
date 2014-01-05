@@ -50,6 +50,8 @@ import sys
 # Vars
 startup_active_label = "✓ Start Automatically"
 startup_inactive_label = "Start Automatically"
+pause_label = "Pause"
+play_label = "Resume"
 home_path = os.path.expanduser("~")
 startup_path = home_path+'/.config/autostart/pinger.desktop'
 startup_dir = home_path+'/.config/autostart/'
@@ -96,22 +98,24 @@ else:
 
 class Pinger:
   ping_log = []
+  paused = False
 
   def ping(self, widget=None, data=None):
-    ping = subprocess.Popen(
-        ["ping", "-c", "1", host],
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE
-    )
-    out, error = ping.communicate()
-    m = re.search('time=(.*) ms', out)
-    if error or m == None:
-      label = "PING FAIL"
-      self.log_ping(-1)
-    else:
-      label = m.group(1)+" ms"
-      self.log_ping(m.group(1))
-    self.ind.set_label (label, "100.0 ms")
+    if not self.paused:
+      ping = subprocess.Popen(
+          ["ping", "-c", "1", host],
+          stdout = subprocess.PIPE,
+          stderr = subprocess.PIPE
+      )
+      out, error = ping.communicate()
+      m = re.search('time=(.*) ms', out)
+      if error or m == None:
+        label = "PING FAIL"
+        self.log_ping(-1)
+      else:
+        label = m.group(1)+" ms"
+        self.log_ping(m.group(1))
+      self.ind.set_label (label, "100.0 ms")
     #self.ping_menu_item.set_label(out)
     gobject.timeout_add_seconds(self.timeout, self.ping)
 
@@ -150,14 +154,26 @@ class Pinger:
   def remove_autostart(self, widget, data=None):
     os.remove(startup_path)
     self.update_startup_menu()
- 
+    print "Removed"
+
+  def toggle_pause(self, widget, data=None):
+    if self.paused:
+      self.paused = False
+    else:
+      self.paused = True
+    self.update_pause_menu() 
+
   def update_startup_menu(self):
     if os.path.exists(startup_path):
       self.startup_menu.set_label(startup_active_label)
-      self.startup_menu.connect("activate", self.remove_autostart, startup_active_label)
     else:
       self.startup_menu.set_label(startup_inactive_label)
-      self.startup_menu.connect("activate", self.create_autostart, startup_inactive_label)
+
+  def update_pause_menu(self):
+    if self.paused:
+      self.pause_menu.set_label(play_label)
+    else:
+      self.pause_menu.set_label(pause_label)
 
   def update_log_menu(self):
     graph = ""
@@ -192,6 +208,9 @@ class Pinger:
 
     # create a menu
     self.menu = Gtk.Menu()
+    # with pause option
+    self.pause_menu = self.create_menu_item(pause_label, self.toggle_pause)
+    self.update_pause_menu()
     # with autostart option
     self.startup_menu = self.create_menu_item(startup_inactive_label, self.create_autostart)
     self.update_startup_menu()
