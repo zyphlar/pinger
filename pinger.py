@@ -25,11 +25,6 @@
 # <http://www.gnu.org/licenses/>
 #
 
-# User-editable variables
-host = "4.2.2.2" # IP or hostname
-ping_frequency = 5 # in seconds
-ping_log_max_size = 15
-
 #
 # Dependencies
 #
@@ -47,12 +42,52 @@ import re
 import signal
 # File paths
 import os
+#Argument parsing
+import argparse
+#for exit
+import sys
 
 # Vars
 startup_active_label = "✓ Start Automatically"
 startup_inactive_label = "Start Automatically"
 home_path = os.path.expanduser("~")
 startup_path = home_path+'/.config/autostart/pinger.desktop'
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-t", "--target", help="Target to PING against. (IP / Hostname / Domain name). Defaults to 4.2.2.2")
+parser.add_argument("-f", "--freq", help="Timeout between pings, in seconds. Defaults to 5")
+parser.add_argument("-m", "--maxlog", help="Maximum amount of pings to log. Defaults to 15")
+args = parser.parse_args()
+
+#accumulate the arguments for use later
+arguments = ""
+for arg in sys.argv[1:]:
+  arguments += arg + " "
+
+# User-editable variables
+if args.target:
+  host = args.target
+else:
+  host = "4.2.2.2" # IP or hostname
+  print "Using default target IP of 4.2.2.2"
+
+if args.freq:
+  try:
+    ping_frequency = int(args.freq)
+  except ValueError:
+    sys.stderr.write("Error parsing argument '--freq'\n")
+    sys.exit(1)
+else:
+  ping_frequency = 5 # in seconds
+
+if args.maxlog:
+  try:
+    ping_log_max_size = int(args.maxlog)
+  except ValueError:
+    sys.stderr.write("Error parsing argument '--maxlog'\n")
+    sys.exit(1)
+else:
+  ping_log_max_size = 15
 
 #
 # Main Class
@@ -83,7 +118,7 @@ class Pinger:
     self.ping_log.append(value)
     self.update_log_menu()
     # limit the size of the log
-    if len(self.ping_log) > ping_log_max_size:
+    if len(self.ping_log) >= ping_log_max_size:
       # remove the earliest ping, not the latest
       self.ping_log.pop(0) 
 
@@ -103,7 +138,7 @@ class Pinger:
     with open(startup_path,'w') as f:
       f.write("[Desktop Entry]\r\n"
               "Type=Application\r\n"
-              "Exec=python "+os.path.abspath( __file__ )+"\r\n"
+              "Exec=python "+os.path.abspath( __file__ )+arguments+"\r\n"
               "X-GNOME-Autostart-enabled=true\r\n"
               "Name=Pinger\r\n"
               "Comment=Pings the internet every few seconds")
