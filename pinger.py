@@ -161,10 +161,10 @@ class Pinger:
   def toggle_pause(self, widget, data=None):
     if self.paused:
       self.paused = False
-      self.pause_menu.set_label(play_label)
+      self.pause_menu.set_label(pause_label)
     else:
       self.paused = True
-      self.pause_menu.set_label(pause_label)
+      self.pause_menu.set_label(play_label)
 
   def update_log_menu(self):
     graph = ""
