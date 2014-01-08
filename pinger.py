@@ -50,6 +50,8 @@ import sys
 # Vars
 startup_active_label = "✓ Start Automatically"
 startup_inactive_label = "Start Automatically"
+pause_label = "Pause"
+play_label = "Resume"
 home_path = os.path.expanduser("~")
 startup_path = home_path+'/.config/autostart/pinger.desktop'
 startup_dir = home_path+'/.config/autostart/'
@@ -96,23 +98,26 @@ else:
 
 class Pinger:
   ping_log = []
+  paused = False
+  autostart = False
 
   def ping(self, widget=None, data=None):
-    ping = subprocess.Popen(
-        ["ping", "-c", "1", host],
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE
-    )
-    out, error = ping.communicate()
-    m = re.search('time=(.*) ms', out)
-    if error or m == None:
-      label = "PING FAIL"
-      self.log_ping(-1)
-    else:
-      label = m.group(1)+" ms"
-      self.log_ping(m.group(1))
-    self.ind.set_label (label, "100.0 ms")
-    #self.ping_menu_item.set_label(out)
+    if not self.paused:
+      ping = subprocess.Popen(
+          ["ping", "-c", "1", host],
+          stdout = subprocess.PIPE,
+          stderr = subprocess.PIPE
+      )
+      out, error = ping.communicate()
+      m = re.search('time=(.*) ms', out)
+      if error or m == None:
+        label = "PING FAIL"
+        self.log_ping(-1)
+      else:
+        latency = "%.2f" % float(m.group(1))
+        label = latency+" ms"
+        self.log_ping(latency)
+      self.ind.set_label(label, "100.0 ms")
     gobject.timeout_add_seconds(self.timeout, self.ping)
 
   def log_ping(self, value):
@@ -135,29 +140,31 @@ class Pinger:
     print "Quitting..."
     Gtk.main_quit()
 
-  def create_autostart(self, widget, data=None):
-    if not os.path.exists(startup_dir):
-      os.makedirs(startup_dir)
-    with open(startup_path,'w') as f:
-      f.write("[Desktop Entry]\r\n"
-              "Type=Application\r\n"
-              "Exec=python "+os.path.abspath( __file__ )+arguments+"\r\n"
-              "X-GNOME-Autostart-enabled=true\r\n"
-              "Name=Pinger\r\n"
-              "Comment=Pings the internet every few seconds")
-    self.update_startup_menu()
-
-  def remove_autostart(self, widget, data=None):
-    os.remove(startup_path)
-    self.update_startup_menu()
- 
-  def update_startup_menu(self):
-    if os.path.exists(startup_path):
+  def toggle_autostart(self, widget, data=None):
+    if not self.autostart:
+      if not os.path.exists(startup_dir):
+        os.makedirs(startup_dir)
+      with open(startup_path,'w') as f:
+        f.write("[Desktop Entry]\r\n"
+                "Type=Application\r\n"
+                "Exec=python "+os.path.abspath( __file__ )+arguments+"\r\n"
+                "X-GNOME-Autostart-enabled=true\r\n"
+                "Name=Pinger\r\n"
+                "Comment=Pings the internet every few seconds")
+      self.autostart = True
       self.startup_menu.set_label(startup_active_label)
-      self.startup_menu.connect("activate", self.remove_autostart, startup_active_label)
     else:
+      os.remove(startup_path)
+      self.autostart = False
       self.startup_menu.set_label(startup_inactive_label)
-      self.startup_menu.connect("activate", self.create_autostart, startup_inactive_label)
+
+  def toggle_pause(self, widget, data=None):
+    if self.paused:
+      self.paused = False
+      self.pause_menu.set_label(pause_label)
+    else:
+      self.paused = True
+      self.pause_menu.set_label(play_label)
 
   def update_log_menu(self):
     graph = ""
@@ -192,9 +199,16 @@ class Pinger:
 
     # create a menu
     self.menu = Gtk.Menu()
+    # with pause option
+    self.pause_menu = self.create_menu_item(pause_label, self.toggle_pause)
     # with autostart option
-    self.startup_menu = self.create_menu_item(startup_inactive_label, self.create_autostart)
-    self.update_startup_menu()
+    # first, check current autostart state by checking existance of .desktop file
+    try:
+      with open(startup_dir):
+        self.autostart = True
+    except IOError:
+      self.autostart = False
+    self.startup_menu = self.create_menu_item(startup_inactive_label, self.toggle_autostart)
     # and log display
     self.log_menu = self.create_menu_item("Ping Log", None)
     # and exit option
