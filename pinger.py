@@ -43,10 +43,12 @@ import re
 import signal
 # File paths
 import os
-#Argument parsing
+# Argument parsing
 import argparse
-#for exit
+# For exit
 import sys
+# For graphing
+import cairo
 
 # Vars
 startup_active_label = "✓ Start Automatically"
@@ -60,8 +62,17 @@ startup_dir = home_path+'/.config/autostart/'
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--target", help="Target to PING against. (IP / Hostname / Domain name). Defaults to 4.2.2.2")
 parser.add_argument("-f", "--freq", help="Timeout between pings, in seconds. Defaults to 5")
-parser.add_argument("-m", "--maxlog", help="Maximum amount of pings to log. Defaults to 15")
+parser.add_argument("-m", "--maxlog", help="Maximum amount of pings to log. Defaults to 40")
+parser.add_argument("-c", "--color", help="Color scheme ('dark' or 'light'). Defaults to dark.")
 args = parser.parse_args()
+
+ubuntu_mono_dark_rgba = [0xdf, 0xd8, 0xc8, 0xff]
+ubuntu_mono_light_rgba = [0x3a, 0x39, 0x35, 0xff]
+black = [0, 0, 0, 0xff]
+red = [0xff, 0, 0, 0xff]
+white = [0xff, 0xff, 0xff, 0xff]
+dark_bg = [0, 0, 0, 0x3f]
+light_bg = [0xff, 0xff, 0xff, 0x3f]
 
 #accumulate the arguments for use later
 arguments = " "
@@ -91,7 +102,16 @@ if args.maxlog:
     sys.stderr.write("Error parsing argument '--maxlog'\n")
     sys.exit(1)
 else:
-  ping_log_max_size = 15
+  ping_log_max_size = 40
+
+if args.color == "light":
+  graph_color = ubuntu_mono_light_rgba
+  graph_highlight = ubuntu_mono_dark_rgba
+  graph_background = light_bg
+else:
+  graph_color = ubuntu_mono_dark_rgba
+  graph_highlight = ubuntu_mono_light_rgba
+  graph_background = dark_bg
 
 #
 # Main Class
@@ -101,6 +121,7 @@ class Pinger:
   ping_log = []
   paused = False
   autostart = False
+  icon_height = 22
 
   def ping(self, widget=None, data=None):
     if not self.paused:
@@ -118,11 +139,11 @@ class Pinger:
         latency = "%.2f" % float(m.group(1))
         label = latency+" ms"
         self.log_ping(latency)
-      self.ind.set_label(label, "100.0 ms")
+      #self.ind.set_label(label, "100.0 ms")
     gobject.timeout_add_seconds(self.timeout, self.ping)
 
   def log_ping(self, value):
-    self.ping_log.append(value)
+    self.ping_log.append(float(value))
     self.update_log_menu()
     # limit the size of the log
     if len(self.ping_log) >= ping_log_max_size:
@@ -168,20 +189,41 @@ class Pinger:
       self.pause_menu.set_label(play_label)
 
   def update_log_menu(self):
-    graph = ""
-    for p in self.ping_log:
-      if float(p) == -1:
-        graph += "E "#u'\u2847' # Error
-      elif float(p) < 30:
-        graph += u'\u2840'
-      elif float(p) < 100:
-        graph += u'\u2844'
-      elif float(p) < 100:
-        graph += u'\u2846'
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, ping_log_max_size, self.icon_height)
+    ctx = cairo.Context(surface)
+
+    # draw semitransparent box
+    self.draw_rect( ctx, [0,0], [ping_log_max_size,self.icon_height], graph_background )
+
+    if(max(self.ping_log) < 100):
+      max_ping = 100
+    else:
+      max_ping = max(self.ping_log)
+
+    for index, ping in enumerate(self.ping_log):
+
+      if float(ping) == -1: # Ping error
+        # Draw full-height error bar
+        self.draw_rect( ctx, [index,self.icon_height], [1,-self.icon_height-1], red )
       else:
-        graph += u'\u2847'
-    self.log_menu.set_label(graph)
+        # draw normal bar
+        self.draw_rect( ctx, [index,self.icon_height], [1,-int(self.scale(ping, (0,max_ping), (0,self.icon_height)))], graph_color )
+
+    surface.write_to_png("graph.png")
+    self.ind.set_icon("") # gotta set it to nothing in order to update
+    self.ind.set_icon("graph")
     
+  def draw_rect(self, ctx, point, size, rgba):
+    ctx.rectangle( point[0], point[1], size[0], size[1] )
+    ctx.set_source_rgba(rgba[0]/float(255), rgba[1]/float(255), rgba[2]/float(255), rgba[3]/float(255))
+    ctx.fill()
+
+  def scale(self, val, src, dst):
+    """
+    Scale the given value from the scale of src to the scale of dst.
+    """
+    return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
+
   def __init__(self):
     # Handle ctrl-c
     signal.signal(signal.SIGINT, self.destroy)
@@ -193,9 +235,10 @@ class Pinger:
     self.ind = appindicator.Indicator.new (
                "pinger",
                "", # no icon
-               appindicator.IndicatorCategory.COMMUNICATIONS)
+               appindicator.IndicatorCategory.SYSTEM_SERVICES)
     self.ind.set_status (appindicator.IndicatorStatus.ACTIVE)
-    self.ind.set_label ("Pinger Loading...", "Pinger Loading...")
+    #self.ind.set_label ("Pinger Loading...", "Pinger Loading...")
+    self.ind.set_icon_theme_path(os.path.dirname(os.path.realpath(__file__)))
 
     # create a menu
     self.menu = Gtk.Menu()
@@ -209,8 +252,6 @@ class Pinger:
     else:
       self.autostart = False
       self.startup_menu = self.create_menu_item(startup_inactive_label, self.toggle_autostart)
-    # and log display
-    self.log_menu = self.create_menu_item("Ping Log", None)
     # and exit option
     self.create_menu_item("Exit", self.destroy)
     self.ind.set_menu(self.menu)
