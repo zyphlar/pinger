@@ -4,7 +4,8 @@
 # Pinger.py -- A ping tool that sits in your system tray
 # Copyright 2013 Will Bradley
 #
-# Authors: Will Bradley <bradley.will@gmail.com>
+# Contributors: Will Bradley <bradley.will@gmail.com>
+#               AltF4 <altf4@phx2600.org>
 #
 # This program is free software: you can redistribute it and/or modify it 
 # under the terms of either or both of the following licenses:
@@ -203,12 +204,12 @@ class Pinger:
     self.pause_menu = self.create_menu_item(pause_label, self.toggle_pause)
     # with autostart option
     # first, check current autostart state by checking existance of .desktop file
-    try:
-      with open(startup_dir):
-        self.autostart = True
-    except IOError:
+    if os.path.exists(startup_path):
+      self.autostart = True
+      self.startup_menu = self.create_menu_item(startup_active_label, self.toggle_autostart)
+    else:
       self.autostart = False
-    self.startup_menu = self.create_menu_item(startup_inactive_label, self.toggle_autostart)
+      self.startup_menu = self.create_menu_item(startup_inactive_label, self.toggle_autostart)
     # and log display
     self.log_menu = self.create_menu_item("Ping Log", None)
     # and exit option
