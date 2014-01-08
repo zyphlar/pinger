@@ -169,7 +169,6 @@ class Pinger:
 
   def update_log_menu(self):
     graph = ""
-    print self.ping_log
     for p in self.ping_log:
       if float(p) == -1:
         graph += "E "#u'\u2847' # Error
