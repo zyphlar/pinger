@@ -212,6 +212,7 @@ class Pinger:
     surface.write_to_png("graph.png")
     self.ind.set_icon("") # gotta set it to nothing in order to update
     self.ind.set_icon("graph")
+    self.ping_menu.set_label("Ping: "+str(self.ping_log[-1])+" ms")
     
   def draw_rect(self, ctx, point, size, rgba):
     ctx.rectangle( point[0], point[1], size[0], size[1] )
@@ -242,6 +243,8 @@ class Pinger:
 
     # create a menu
     self.menu = Gtk.Menu()
+    # with ping numbers
+    self.ping_menu = self.create_menu_item("", None)
     # with pause option
     self.pause_menu = self.create_menu_item(pause_label, self.toggle_pause)
     # with autostart option
