@@ -209,6 +209,7 @@ class Pinger:
         # draw normal bar
         self.draw_rect( ctx, [index,self.icon_height], [1,-int(self.scale(ping, (0,max_ping), (0,self.icon_height)))], graph_color )
 
+    os.remove("graph.png")
     surface.write_to_png("graph.png")
     self.ind.set_icon("") # gotta set it to nothing in order to update
     self.ind.set_icon("graph")
