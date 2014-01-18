@@ -209,8 +209,11 @@ class Pinger:
         # draw normal bar
         self.draw_rect( ctx, [index,self.icon_height], [1,-int(self.scale(ping, (0,max_ping), (0,self.icon_height)))], graph_color )
 
-    os.remove("graph.png")
-    surface.write_to_png("graph.png")
+    try:
+      os.remove("/tmp/graph.png")
+    except:
+      pass
+    surface.write_to_png("/tmp/graph.png")
     self.ind.set_icon("") # gotta set it to nothing in order to update
     self.ind.set_icon("graph")
     self.ping_menu.set_label("Ping: "+str(self.ping_log[-1])+" ms")
@@ -240,7 +243,7 @@ class Pinger:
                appindicator.IndicatorCategory.SYSTEM_SERVICES)
     self.ind.set_status (appindicator.IndicatorStatus.ACTIVE)
     #self.ind.set_label ("Pinger Loading...", "Pinger Loading...")
-    self.ind.set_icon_theme_path(os.path.dirname(os.path.realpath(__file__)))
+    self.ind.set_icon_theme_path("/tmp")
 
     # create a menu
     self.menu = Gtk.Menu()
