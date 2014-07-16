@@ -207,7 +207,12 @@ class Pinger:
         self.draw_rect( ctx, [index,self.icon_height], [1,-self.icon_height-1], red )
       else:
         # draw normal bar
-        self.draw_rect( ctx, [index,self.icon_height], [1,-int(self.scale(ping, (0,max_ping), (0,self.icon_height)))], graph_color )
+        bar_height = -int(self.scale(ping, (0,max_ping), (0,self.icon_height)))
+
+        if bar_height > -1:
+          bar_height = -1
+
+        self.draw_rect( ctx, [index,self.icon_height], [1,bar_height], graph_color )
 
     try:
       os.remove("/tmp/graph.png")
@@ -227,7 +232,8 @@ class Pinger:
     """
     Scale the given value from the scale of src to the scale of dst.
     """
-    return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
+    scale = ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
+    return scale
 
   def __init__(self):
     # Handle ctrl-c
