@@ -60,7 +60,7 @@ startup_path = home_path+'/.config/autostart/pinger.desktop'
 startup_dir = home_path+'/.config/autostart/'
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-t", "--target", help="Target to PING against. (IP / Hostname / Domain name). Defaults to google.com")
+parser.add_argument("-t", "--target", help="Target to PING against. (IP / Hostname / Domain name). Defaults to 8.8.8.8")
 parser.add_argument("-f", "--freq", help="Timeout between pings, in seconds. Defaults to 5")
 parser.add_argument("-m", "--maxlog", help="Maximum amount of pings to log. Defaults to 40")
 parser.add_argument("-c", "--color", help="Color scheme ('dark' or 'light'). Defaults to dark.")
@@ -83,8 +83,8 @@ for arg in sys.argv[1:]:
 if args.target:
   host = args.target
 else:
-  host = "google.com" # IP or hostname
-  print "Using default target of google.com"
+  host = "8.8.8.8" # IP or hostname
+  print "Using default target of 8.8.8.8"
 
 if args.freq:
   try:
