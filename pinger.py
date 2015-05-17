@@ -69,7 +69,9 @@ args = parser.parse_args()
 ubuntu_mono_dark_rgba = [0xdf, 0xd8, 0xc8, 0xff]
 ubuntu_mono_light_rgba = [0x3a, 0x39, 0x35, 0xff]
 black = [0, 0, 0, 0xff]
-red = [0xff, 0, 0, 0xff]
+red = [0xdf, 0x38, 0x2c, 0xff]
+orange = [0xdd, 0x48, 0x14, 0xff]
+yellow = [0xef, 0xb7, 0x3e, 0xff]
 white = [0xff, 0xff, 0xff, 0xff]
 dark_bg = [0, 0, 0, 0x3f]
 light_bg = [0xff, 0xff, 0xff, 0x3f]
@@ -83,7 +85,8 @@ for arg in sys.argv[1:]:
 if args.target:
   host = args.target
 else:
-  host = "8.8.8.8" # IP or hostname
+  host = "8.8.8.8" # IP or hostname of WAN
+  router = "192.168.1.1" # IP or hostname of router
   print "Using default target of 8.8.8.8"
 
 if args.freq:
@@ -106,10 +109,14 @@ else:
 
 if args.color == "light":
   graph_color = ubuntu_mono_light_rgba
+  danger_color = red
+  warning_color = yellow
   graph_highlight = ubuntu_mono_dark_rgba
   graph_background = light_bg
 else:
   graph_color = ubuntu_mono_dark_rgba
+  danger_color = red
+  warning_color = yellow
   graph_highlight = ubuntu_mono_light_rgba
   graph_background = dark_bg
 
@@ -118,15 +125,16 @@ else:
 #
 
 class Pinger:
-  ping_log = []
+  host_log = []
+  router_log = []
   paused = False
   autostart = False
   icon_height = 22
 
-  def ping(self, widget=None, data=None):
+  def ping(self, target, log, widget=None, data=None):
     if not self.paused:
       ping = subprocess.Popen(
-          ["ping", "-c", "1", host],
+          ["ping", "-c", "1", target],
           stdout = subprocess.PIPE,
           stderr = subprocess.PIPE
       )
@@ -134,21 +142,27 @@ class Pinger:
       m = re.search('time=(.*) ms', out)
       if error or m == None:
         label = "PING FAIL"
-        self.log_ping(-1)
+        self.log_ping(log, -1)
       else:
         latency = "%.2f" % float(m.group(1))
         label = latency+" ms"
-        self.log_ping(latency)
-      #self.ind.set_label(label, "100.0 ms")
-    gobject.timeout_add_seconds(self.timeout, self.ping)
+        self.log_ping(log, latency)
 
-  def log_ping(self, value):
-    self.ping_log.append(float(value))
+      #self.ind.set_label(label, "100.0 ms")
+
+
+  def ping_both(self):
+    self.ping(host, self.host_log)
+    self.ping(router, self.router_log)
     self.update_log_menu()
+    gobject.timeout_add_seconds(self.timeout, self.ping_both)
+
+  def log_ping(self, log, value):
+    log.append(float(value))
     # limit the size of the log
-    if len(self.ping_log) >= ping_log_max_size:
+    if len(log) >= ping_log_max_size:
       # remove the earliest ping, not the latest
-      self.ping_log.pop(0) 
+      log.pop(0) 
 
   def create_menu_item(self, text, callback):
     menu_item = Gtk.MenuItem(text)
@@ -195,24 +209,14 @@ class Pinger:
     # draw semitransparent box
     self.draw_rect( ctx, [0,0], [ping_log_max_size,self.icon_height], graph_background )
 
-    if(max(self.ping_log) < 100):
-      max_ping = 100
-    else:
-      max_ping = max(self.ping_log)
-
-    for index, ping in enumerate(self.ping_log):
-
-      if float(ping) == -1: # Ping error
-        # Draw full-height error bar
-        self.draw_rect( ctx, [index,self.icon_height], [1,-self.icon_height-1], red )
-      else:
-        # draw normal bar
-        bar_height = -int(self.scale(ping, (0,max_ping), (0,self.icon_height)))
-
-        if bar_height > -1:
-          bar_height = -1
-
-        self.draw_rect( ctx, [index,self.icon_height], [1,bar_height], graph_color )
+    if len(self.host_log) > 0:
+      self.draw_log(ctx, self.host_log, 0)
+      host_avg = sum(self.host_log)/len(self.host_log)
+      self.ping_menu.set_label("Internet: "+str(int(round(self.host_log[-1])))+" ms "+str(int(round(host_avg)))+" avg")
+    if len(self.router_log) > 0:
+      self.draw_log(ctx, self.router_log, self.icon_height/2)
+      router_avg = sum(self.router_log)/len(self.router_log)
+      self.router_menu.set_label("Router: "+str(int(round(self.router_log[-1])))+" ms "+str(int(round(router_avg)))+" avg")
 
     try:
       os.remove("/tmp/graph.png")
@@ -221,8 +225,37 @@ class Pinger:
     surface.write_to_png("/tmp/graph.png")
     self.ind.set_icon("") # gotta set it to nothing in order to update
     self.ind.set_icon("graph")
-    self.ping_menu.set_label("Ping: "+str(self.ping_log[-1])+" ms")
-    
+ 
+
+  def draw_log(self, ctx, log, yOffset):
+    if(max(log) < 100):
+      max_ping = 100
+    elif(max(log) > 1000):
+      max_ping = 1000
+    else:
+      max_ping = max(log)
+
+    for index, ping in enumerate(log):
+
+      if float(ping) == -1: # Ping error
+        # Draw full-height error bar
+
+        self.draw_rect( ctx, [index,(self.icon_height/2)+yOffset], [1,(-self.icon_height/2)-1], danger_color )
+      else:
+        # draw normal bar
+        bar_height = -int(self.scale(ping, (0,max_ping), (0,self.icon_height/2)))
+
+        if bar_height > -1:
+          bar_height = -1
+
+        if ping > 100:
+          color = warning_color
+        else:
+          color = graph_color
+
+        self.draw_rect( ctx, [index,self.icon_height/2+yOffset], [1,bar_height], color )
+
+   
   def draw_rect(self, ctx, point, size, rgba):
     ctx.rectangle( point[0], point[1], size[0], size[1] )
     ctx.set_source_rgba(rgba[0]/float(255), rgba[1]/float(255), rgba[2]/float(255), rgba[3]/float(255))
@@ -255,6 +288,7 @@ class Pinger:
     self.menu = Gtk.Menu()
     # with ping numbers
     self.ping_menu = self.create_menu_item("", None)
+    self.router_menu = self.create_menu_item("", None)
     # with pause option
     self.pause_menu = self.create_menu_item(pause_label, self.toggle_pause)
     # with autostart option
@@ -272,7 +306,7 @@ class Pinger:
     # start the ping process
     self.counter = 0
     self.timeout = ping_frequency
-    self.ping()
+    self.ping_both()
 
     # Print started message
     print "Started."
