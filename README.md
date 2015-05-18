@@ -1,3 +1,5 @@
+ ![Screenshot](https://github.com/zyphlar/pinger/raw/master/pinger.png)
+
 Pinger.py
 =========
 A ping tool that sits in your system tray
