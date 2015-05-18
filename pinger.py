@@ -217,7 +217,7 @@ class Pinger:
       host_avg = sum(self.host_log)/len(self.host_log)
       self.ping_menu.set_label("Internet: "+str(int(round(self.host_log[-1])))+" ms "+str(int(round(host_avg)))+" avg")
     if len(self.router_log) > 0:
-      self.draw_log(ctx, self.router_log, (self.icon_height/2)+1)
+      self.draw_log(ctx, self.router_log, (self.icon_height/2))
       router_avg = sum(self.router_log)/len(self.router_log)
       self.router_menu.set_label("Router: "+str(int(round(self.router_log[-1])))+" ms "+str(int(round(router_avg)))+" avg")
 
