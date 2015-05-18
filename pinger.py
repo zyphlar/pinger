@@ -49,6 +49,8 @@ import argparse
 import sys
 # For graphing
 import cairo
+# For IP addresses
+import socket, struct
 
 # Vars
 startup_active_label = "✓ Start Automatically"
@@ -85,9 +87,10 @@ for arg in sys.argv[1:]:
 if args.target:
   host = args.target
 else:
-  host = "8.8.8.8" # IP or hostname of WAN
-  router = "192.168.1.1" # IP or hostname of router
   print "Using default target of 8.8.8.8"
+  host = "8.8.8.8" # IP or hostname of WAN
+
+router = "192.168.1.1" # IP or hostname of router
 
 if args.freq:
   try:
@@ -214,7 +217,7 @@ class Pinger:
       host_avg = sum(self.host_log)/len(self.host_log)
       self.ping_menu.set_label("Internet: "+str(int(round(self.host_log[-1])))+" ms "+str(int(round(host_avg)))+" avg")
     if len(self.router_log) > 0:
-      self.draw_log(ctx, self.router_log, self.icon_height/2)
+      self.draw_log(ctx, self.router_log, (self.icon_height/2)+1)
       router_avg = sum(self.router_log)/len(self.router_log)
       self.router_menu.set_label("Router: "+str(int(round(self.router_log[-1])))+" ms "+str(int(round(router_avg)))+" avg")
 
@@ -243,7 +246,7 @@ class Pinger:
         self.draw_rect( ctx, [index,(self.icon_height/2)+yOffset], [1,(-self.icon_height/2)-1], danger_color )
       else:
         # draw normal bar
-        bar_height = -int(self.scale(ping, (0,max_ping), (0,self.icon_height/2)))
+        bar_height = -int(self.scale(ping, (0,max_ping), (0,(self.icon_height/2)-1)))
 
         if bar_height > -1:
           bar_height = -1
@@ -267,6 +270,16 @@ class Pinger:
     """
     scale = ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
     return scale
+
+  def get_default_gateway_linux(self):
+    # Read the default gateway directly from /proc.
+    with open("/proc/net/route") as fh:
+      for line in fh:
+        fields = line.strip().split()
+        if fields[1] != '00000000' or not int(fields[3], 16) & 2:
+          continue
+
+        return str(socket.inet_ntoa(struct.pack("<L", int(fields[2], 16))))
 
   def __init__(self):
     # Handle ctrl-c
@@ -302,6 +315,9 @@ class Pinger:
     # and exit option
     self.create_menu_item("Exit", self.destroy)
     self.ind.set_menu(self.menu)
+
+    # set router / gateway dynamically
+    router = self.get_default_gateway_linux()
 
     # start the ping process
     self.counter = 0
