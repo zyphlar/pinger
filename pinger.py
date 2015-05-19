@@ -85,12 +85,12 @@ for arg in sys.argv[1:]:
 
 # User-editable variables
 if args.target:
-  host = args.target
+  default_host = args.target
 else:
-  print "Using default target of 8.8.8.8"
-  host = "8.8.8.8" # IP or hostname of WAN
+  print "Using default Internet target of 8.8.8.8"
+  default_host = "8.8.8.8" # IP or hostname of WAN
 
-router = "192.168.1.1" # IP or hostname of router
+default_router = "192.168.1.1" # IP or hostname of router
 
 if args.freq:
   try:
@@ -128,6 +128,8 @@ else:
 #
 
 class Pinger:
+  host = None
+  router = None
   host_log = []
   router_log = []
   paused = False
@@ -136,6 +138,7 @@ class Pinger:
 
   def ping(self, target, log, widget=None, data=None):
     if not self.paused:
+      #print "Pinging "+str(target)
       ping = subprocess.Popen(
           ["ping", "-c", "1", target],
           stdout = subprocess.PIPE,
@@ -155,8 +158,8 @@ class Pinger:
 
 
   def ping_both(self):
-    self.ping(host, self.host_log)
-    self.ping(router, self.router_log)
+    self.ping(self.host, self.host_log)
+    self.ping(self.router, self.router_log)
     self.update_log_menu()
     gobject.timeout_add_seconds(self.timeout, self.ping_both)
 
@@ -316,8 +319,14 @@ class Pinger:
     self.create_menu_item("Exit", self.destroy)
     self.ind.set_menu(self.menu)
 
+    # load host/router vars
+    self.host = default_host
+
     # set router / gateway dynamically
-    router = self.get_default_gateway_linux()
+    self.router = self.get_default_gateway_linux()
+    if self.router == None:
+      self.router = default_router
+    print "Set router target to "+str(self.router)
 
     # start the ping process
     self.counter = 0
