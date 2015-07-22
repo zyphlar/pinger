@@ -35,6 +35,7 @@ from gi.repository import Gtk
 from gi.repository import AppIndicator3 as appindicator
 # Timer
 from gi.repository import GObject as gobject
+import datetime
 # Pinging
 import subprocess
 # Regex
@@ -161,6 +162,20 @@ class Pinger:
     self.ping(self.host, self.host_log)
     self.ping(self.router, self.router_log)
     self.update_log_menu()
+
+    # If we have 5 router failures, try getting the default GW again
+    if (self.routerLastUpdated != None
+      and (datetime.datetime.now()-self.routerLastUpdated).seconds > 60):
+
+      if (len(self.router_log) > 5
+        and self.router_log[-1] == -1
+        and self.router_log[-2] == -1
+        and self.router_log[-3] == -1):
+
+        self.router = self.get_default_gateway_linux()
+        print "Updated router target to "+str(self.router)
+        self.routerLastUpdated = datetime.datetime.now()
+
     gobject.timeout_add_seconds(self.timeout, self.ping_both)
 
   def log_ping(self, log, value):
@@ -327,6 +342,7 @@ class Pinger:
     if self.router == None:
       self.router = default_router
     print "Set router target to "+str(self.router)
+    self.routerLastUpdated = datetime.datetime.now()
 
     # start the ping process
     self.counter = 0
