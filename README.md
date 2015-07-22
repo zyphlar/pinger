@@ -21,6 +21,6 @@ Open the Terminal program and enter the following commands:
     git clone https://github.com/zyphlar/pinger.git
     python pinger/pinger.py &
 
-Pinger should open in your system tray (It just looks like "XX.X ms"). To set Pinger to start automatically (in Ubuntu) click it and choose Start Automatically.
+Pinger should open in your system tray. To set Pinger to start automatically (in Ubuntu) click it and choose Start Automatically.
 
 Report bugs or feature requests at https://github.com/zyphlar/pinger/issues
