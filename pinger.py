@@ -172,9 +172,12 @@ class Pinger:
         and self.router_log[-2] == -1
         and self.router_log[-3] == -1):
 
-        self.router = self.get_default_gateway_linux()
-        print "Updated router target to "+str(self.router)
-        self.routerLastUpdated = datetime.datetime.now()
+        new_router = self.get_default_gateway_linux()
+        # Only update router if it's not blank
+        if new_router != None:
+          self.router = new_router
+          print "Updated router target to "+str(self.router)
+          self.routerLastUpdated = datetime.datetime.now()
 
     gobject.timeout_add_seconds(self.timeout, self.ping_both)
 
