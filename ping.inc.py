@@ -67,7 +67,7 @@ class Pinger:
       pingout = Util.doPing(target)
       ssidout = Util.getSsid()
 
-      print json.dumps({'ssid': ssidout, 'loss': int(pingout)})
+      print json.dumps({'ssid': ssidout, 'loss': float(pingout)})
 
   def __init__(self):
     # Print welcome message
@@ -92,8 +92,13 @@ class Util:
       out, error = ssid.communicate()
       m = re.search(r'yes:(.*)', out)
       result = m.group(1)
-    elif platform.system() == "Macintosh":
-      foo
+    elif platform.system() == "Darwin":
+      ssid = subprocess.Popen(["/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport","-I"],
+          stdout = subprocess.PIPE,
+          stderr = subprocess.PIPE
+      )
+      out, error = ssid.communicate()
+      result = out
     return result
 
   @staticmethod
@@ -112,8 +117,20 @@ class Util:
         pingout = -1
       else:
         pingout = m.group(1)
-    elif platform.system() == "Macintosh":
-      foo
+    elif platform.system() == "Darwin": # Macintosh
+      ping = subprocess.Popen(
+          ["ping", "-c", "5", target],
+          stdout = subprocess.PIPE,
+          stderr = subprocess.PIPE
+      )
+      out, error = ping.communicate()
+      # print out
+      m = re.search(r' ([0-9\.]+)% packet loss', out, re.MULTILINE) # (^rtt .*$)|
+      # print m.groups()
+      if error or m.group(1) == 100:
+        pingout = -1
+      else:
+        pingout = m.group(1)
     return pingout
 
 #
