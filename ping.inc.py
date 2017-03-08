@@ -44,6 +44,8 @@ import re
 import signal
 # File paths
 import os
+# OS naming
+import platform
 # Argument parsing
 import argparse
 # For exit
@@ -52,7 +54,8 @@ import sys
 
 # For IP addresses
 import socket, struct
-
+# For API
+import json
 
 #
 # Main Class
@@ -61,19 +64,10 @@ import socket, struct
 class Pinger:
 
   def ping(self, target, log=None, widget=None, data=None):
-      ping = subprocess.Popen(
-          ["ping", "-c", "1", target],
-          stdout = subprocess.PIPE,
-          stderr = subprocess.PIPE
-      )
-      out, error = ping.communicate()
-      m = re.search('time=(.*) ms', out)
-      if error or m == None:
-        print "PING FAIL"
-      else:
-        latency = "%.2f" % float(m.group(1))
-        print latency+" ms"
+      pingout = Util.doPing(target)
+      ssidout = Util.getSsid()
 
+      print json.dumps({'ssid': ssidout, 'loss': int(pingout)})
 
   def __init__(self):
     # Print welcome message
@@ -82,7 +76,45 @@ class Pinger:
     self.ping("4.2.2.2")
 
     # Print started message
-    print "Started."
+    print "Finished."
+
+#
+# Utility class for platform-agnosticism and reusability
+#
+class Util:
+  @staticmethod
+  def getSsid():
+    if platform.system() == "Linux":
+      ssid = subprocess.Popen(["nmcli","-t","-f","active,ssid","dev","wifi"],
+          stdout = subprocess.PIPE,
+          stderr = subprocess.PIPE
+      ) #  | egrep '^yes(.*)' | cut -d\' -f2
+      out, error = ssid.communicate()
+      m = re.search(r'yes:(.*)', out)
+      result = m.group(1)
+    elif platform.system() == "Macintosh":
+      foo
+    return result
+
+  @staticmethod
+  def doPing(target):
+    if platform.system() == "Linux":
+      ping = subprocess.Popen(
+          ["ping", "-c", "5", target],
+          stdout = subprocess.PIPE,
+          stderr = subprocess.PIPE
+      )
+      out, error = ping.communicate()
+      #print out
+      m = re.search(r' ([0-9]+)% packet loss', out, re.MULTILINE) # (^rtt .*$)|
+      # print m.groups()
+      if error or m.group(1) == 100:
+        pingout = -1
+      else:
+        pingout = m.group(1)
+    elif platform.system() == "Macintosh":
+      foo
+    return pingout
 
 #
 # Runtime
