@@ -1,0 +1,5 @@
+- local caching
+- remote submission
+- centralized reporting
+- packaging/distribution
+- cross-platform gui
