@@ -64,10 +64,15 @@ import json
 class Pinger:
 
   def ping(self, target, log=None, widget=None, data=None):
-      pingout = Util.doPing(target)
-      ssidout = Util.getSsid()
+      pingResult = Util.doPing(target)
+      ssidResult = Util.getSsid()
 
-      print json.dumps({'ssid': ssidout, 'loss': int(pingout)})
+      print json.dumps({
+        'target': target,
+        'ssid': ssidResult,
+        'loss': float(pingResult['loss']),
+        'rtt_avg': float(pingResult['rtt_avg']),
+      })
 
   def __init__(self):
     # Print welcome message
@@ -104,17 +109,17 @@ class Util:
           stdout = subprocess.PIPE,
           stderr = subprocess.PIPE
       )
-      out, error = ping.communicate()
-      #print out
-      m = re.search(r' ([0-9]+)% packet loss', out, re.MULTILINE) # (^rtt .*$)|
-      # print m.groups()
-      if error or m.group(1) == 100:
-        pingout = -1
+      pingOut, pingError = ping.communicate()
+      # Doing two regexes because Python doesn't like doing both in one
+      lossResult = re.search(r' ([0-9]+)% packet loss', pingOut, re.MULTILINE)
+      rttAvgResult = re.search(r' = [\d\.]+/([\d\.]+)/[\d\.]+/[\d\.]+', pingOut, re.MULTILINE)
+      if pingError:
+        output = {'loss':-1, 'rtt_avg':-1};
       else:
-        pingout = m.group(1)
+        output = {'loss':lossResult.group(1), 'rtt_avg':rttAvgResult.group(1)};
     elif platform.system() == "Macintosh":
       foo
-    return pingout
+    return output
 
 #
 # Runtime
