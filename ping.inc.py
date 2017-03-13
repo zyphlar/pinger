@@ -7,22 +7,22 @@
 # Contributors: Will Bradley <bradley.will@gmail.com>
 #               AltF4 <altf4@phx2600.org>
 #
-# This program is free software: you can redistribute it and/or modify it 
+# This program is free software: you can redistribute it and/or modify it
 # under the terms of either or both of the following licenses:
 #
-# 1) the GNU Lesser General Public License version 3, as published by the 
+# 1) the GNU Lesser General Public License version 3, as published by the
 # Free Software Foundation; and/or
-# 2) the GNU Lesser General Public License version 2.1, as published by 
+# 2) the GNU Lesser General Public License version 2.1, as published by
 # the Free Software Foundation.
 #
-# This program is distributed in the hope that it will be useful, but 
-# WITHOUT ANY WARRANTY; without even the implied warranties of 
-# MERCHANTABILITY, SATISFACTORY QUALITY or FITNESS FOR A PARTICULAR 
-# PURPOSE.  See the applicable version of the GNU Lesser General Public 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranties of
+# MERCHANTABILITY, SATISFACTORY QUALITY or FITNESS FOR A PARTICULAR
+# PURPOSE.  See the applicable version of the GNU Lesser General Public
 # License for more details.
 #
-# You should have received a copy of both the GNU Lesser General Public 
-# License version 3 and version 2.1 along with this program.  If not, see 
+# You should have received a copy of both the GNU Lesser General Public
+# License version 3 and version 2.1 along with this program.  If not, see
 # <http://www.gnu.org/licenses/>
 #
 
@@ -97,8 +97,13 @@ class Util:
       out, error = ssid.communicate()
       m = re.search(r'yes:(.*)', out)
       result = m.group(1)
-    elif platform.system() == "Macintosh":
-      foo
+    elif platform.system() == "Darwin":
+      ssid = subprocess.Popen(["/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport","-I"],
+          stdout = subprocess.PIPE,
+          stderr = subprocess.PIPE
+      )
+      out, error = ssid.communicate()
+      result = out
     return result
 
   @staticmethod
@@ -117,8 +122,20 @@ class Util:
         output = {'loss':-1, 'rtt_avg':-1};
       else:
         output = {'loss':lossResult.group(1), 'rtt_avg':rttAvgResult.group(1)};
-    elif platform.system() == "Macintosh":
-      foo
+    elif platform.system() == "Darwin": # Macintosh
+      ping = subprocess.Popen(
+          ["ping", "-c", "5", target],
+          stdout = subprocess.PIPE,
+          stderr = subprocess.PIPE
+      )
+      pingOut, error = ping.communicate()
+      # print out
+      lossResult = re.search(r' ([0-9]+)% packet loss', pingOut, re.MULTILINE)
+      rttAvgResult = re.search(r' = [\d\.]+/([\d\.]+)/[\d\.]+/[\d\.]+', pingOut, re.MULTILINE)
+      if pingError:
+        output = {'loss':-1, 'rtt_avg':-1};
+      else:
+        output = {'loss':lossResult.group(1), 'rtt_avg':rttAvgResult.group(1)};
     return output
 
 #
