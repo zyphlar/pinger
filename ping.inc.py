@@ -116,9 +116,9 @@ class Util:
       )
       pingOut, pingError = ping.communicate()
       # Doing two regexes because Python doesn't like doing both in one
-      lossResult = re.search(r' ([0-9]+)% packet loss', pingOut, re.MULTILINE)
+      lossResult = re.search(r' ([\d\.]+)% packet loss', pingOut, re.MULTILINE)
       rttAvgResult = re.search(r' = [\d\.]+/([\d\.]+)/[\d\.]+/[\d\.]+', pingOut, re.MULTILINE)
-      if pingError:
+      if pingError or lossResult is None or rttAvgResult is None:
         output = {'loss':-1, 'rtt_avg':-1};
       else:
         output = {'loss':lossResult.group(1), 'rtt_avg':rttAvgResult.group(1)};
@@ -128,11 +128,11 @@ class Util:
           stdout = subprocess.PIPE,
           stderr = subprocess.PIPE
       )
-      pingOut, error = ping.communicate()
+      pingOut, pingError = ping.communicate()
       # print out
-      lossResult = re.search(r' ([0-9]+)% packet loss', pingOut, re.MULTILINE)
+      lossResult = re.search(r' ([\d\.]+)% packet loss', pingOut, re.MULTILINE)
       rttAvgResult = re.search(r' = [\d\.]+/([\d\.]+)/[\d\.]+/[\d\.]+', pingOut, re.MULTILINE)
-      if pingError:
+      if pingError or lossResult is None or rttAvgResult is None:
         output = {'loss':-1, 'rtt_avg':-1};
       else:
         output = {'loss':lossResult.group(1), 'rtt_avg':rttAvgResult.group(1)};
